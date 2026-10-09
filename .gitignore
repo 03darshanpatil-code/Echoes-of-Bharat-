@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# SQLite database (regenerate with `npm run reset`)
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+
+# Environment / secrets
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/

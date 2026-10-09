@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Echoes of Bharat — Backend Testing Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <header>
+    <h1>Echoes of Bharat <small>Backend Testing Dashboard</small></h1>
+    <div id="health" class="health">checking…</div>
+  </header>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Active player: every tab operates on this player -->
+  <section class="player-bar card">
+    <div class="field">
+      <label for="player-select">Active player</label>
+      <select id="player-select"><option value="">— none —</option></select>
+      <button id="btn-refresh-players" class="btn" title="Reload player list">↻</button>
+    </div>
+    <form id="create-player-form" class="inline-form">
+      <input id="new-player-name" placeholder="Player name" maxlength="80" required>
+      <input id="new-player-id" placeholder="id (optional, e.g. arjun)" maxlength="64" pattern="[a-z0-9][a-z0-9_-]{2,63}">
+      <select id="new-player-era"></select>
+      <button class="btn primary" type="submit">Create player</button>
+    </form>
+    <div id="player-summary" class="summary">No player selected — create one above.</div>
+  </section>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="players">Players &amp; clues</button>
+    <button class="tab-btn" data-tab="quests">Quests</button>
+    <button class="tab-btn" data-tab="memory">NPC memory</button>
+    <button class="tab-btn" data-tab="travel">Time travel</button>
+    <button class="tab-btn" data-tab="facts">Historical facts</button>
+    <button class="tab-btn" data-tab="log">Request log</button>
+  </nav>
+
+  <main>
+    <!-- ════════════════ Players tab ════════════════ -->
+    <section id="tab-players" class="tab active">
+      <div class="grid">
+        <div class="card">
+          <h2>Player state</h2>
+          <p class="hint">GET <code>/api/players/:id</code> — everything Unity loads on save.</p>
+          <button id="btn-load-state" class="btn">Reload state</button>
+          <pre id="player-state">Select a player first.</pre>
+        </div>
+        <div class="card">
+          <h2>Add a clue</h2>
+          <p class="hint">POST <code>/api/players/:id/clues</code> — collecting the same clue twice returns 409.</p>
+          <form id="add-clue-form" class="form">
+            <label>Clue key <input id="clue-key" placeholder="stele-fragment" maxlength="60" required></label>
+            <label>Label <input id="clue-label" placeholder="A carved fragment of the stele" maxlength="200" required></label>
+            <label>Found in era <select id="clue-era"></select></label>
+            <button class="btn primary" type="submit">Collect clue</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════ Quests tab ════════════════ -->
+    <section id="tab-quests" class="tab">
+      <div class="grid">
+        <div class="card">
+          <h2>Quest progression</h2>
+          <div class="row">
+            <select id="quest-select"></select>
+            <button id="btn-reload-quests" class="btn">↻ Reload</button>
+          </div>
+          <div id="quest-details" class="quest-details"></div>
+          <div id="quest-progress" class="quest-progress"></div>
+          <div class="btn-row">
+            <button id="btn-quest-start" class="btn primary">Start</button>
+            <button id="btn-quest-advance" class="btn">Advance +1</button>
+            <span class="inline">
+              <input id="quest-step" type="number" min="0" value="0" class="narrow">
+              <button id="btn-quest-setstep" class="btn">Set step</button>
+            </span>
+            <button id="btn-quest-complete" class="btn accent">Complete</button>
+          </div>
+          <p class="hint">Rules: start once → advance through every step → complete only when all steps are done (else 409).</p>
+        </div>
+        <div class="card">
+          <h2>Create a quest</h2>
+          <p class="hint">POST <code>/api/quests</code> — quests are story content, always stored as <code>fiction</code>.</p>
+          <form id="create-quest-form" class="form">
+            <label>Title <input id="quest-title" placeholder="The River's Echo" maxlength="120" required></label>
+            <label>id (optional) <input id="quest-id" placeholder="rivers_echo" maxlength="64" pattern="[a-z0-9][a-z0-9_-]{2,63}"></label>
+            <label>Description <textarea id="quest-desc" maxlength="500" rows="2"></textarea></label>
+            <label>Steps (one per line)
+              <textarea id="quest-steps" rows="5" placeholder="Find the ferry&#10;Cross the river&#10;Return at dusk" required></textarea>
+            </label>
+            <button class="btn primary" type="submit">Create quest</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════ NPC memory tab ════════════════ -->
+    <section id="tab-memory" class="tab">
+      <div class="grid">
+        <div class="card">
+          <h2>Record a memory</h2>
+          <p class="hint">POST <code>/api/npcs/:npcId/memories</code> — save what the player did and chose.</p>
+          <div class="row">
+            <select id="npc-select"></select>
+            <span id="npc-info" class="hint"></span>
+          </div>
+          <form id="record-memory-form" class="form">
+            <label>Action <input id="mem-action" placeholder="touched the stele gently" maxlength="300" required></label>
+            <label>Choice <input id="mem-choice" placeholder="asked about the inscription" maxlength="300"></label>
+            <div class="row">
+              <label>Importance
+                <select id="mem-importance">
+                  <option value="1">1 — trivia</option>
+                  <option value="2">2</option>
+                  <option value="3" selected>3 — notable</option>
+                  <option value="4">4</option>
+                  <option value="5">5 — unforgettable</option>
+                </select>
+              </label>
+              <label>Era <select id="mem-era"></select></label>
+            </div>
+            <button class="btn primary" type="submit">Record memory</button>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Retrieve relevant memories</h2>
+          <p class="hint">GET <code>/api/npcs/:npcId/memories</code> — deterministic score:
+            importance + 5×query-word matches + 2 if same era as the NPC.</p>
+          <form id="retrieve-memories-form" class="form">
+            <div class="row">
+              <label>Query words <input id="mem-query" placeholder="inscription stone" maxlength="120"></label>
+              <label>Limit <input id="mem-limit" type="number" min="1" max="100" value="10" class="narrow"></label>
+            </div>
+            <button class="btn primary" type="submit">Search memories</button>
+          </form>
+          <div id="memory-results"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════ Time travel tab ════════════════ -->
+    <section id="tab-travel" class="tab">
+      <div class="grid">
+        <div class="card">
+          <h2>Switch era</h2>
+          <p class="hint">POST <code>/api/players/:id/travel</code> — switching to the era you are already in returns 409.</p>
+          <div id="current-era" class="current-era">—</div>
+          <label class="field">Reason (logged in history)
+            <input id="travel-reason" placeholder="quest start" maxlength="200">
+          </label>
+          <div id="era-cards" class="era-cards"></div>
+        </div>
+        <div class="card">
+          <h2>Travel history</h2>
+          <p class="hint">GET <code>/api/players/:id/travel-history</code></p>
+          <div id="travel-history">No travels yet.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════ Facts tab ════════════════ -->
+    <section id="tab-facts" class="tab">
+      <div class="grid">
+        <div class="card wide">
+          <h2>Historical facts <span id="fact-summary" class="hint"></span></h2>
+          <p class="hint">Verified facts always carry a source title + URL. Fictional story content is returned
+            only when you explicitly ask for it, and never has sources.</p>
+          <div class="row">
+            <label>Show
+              <select id="fact-filter">
+                <option value="verified" selected>verified only</option>
+                <option value="fiction">fiction only</option>
+                <option value="all">everything</option>
+              </select>
+            </label>
+            <label>Era
+              <select id="fact-era">
+                <option value="">all eras</option>
+                <option value="historical_vijayanagara">historical_vijayanagara</option>
+                <option value="present_hampi">present_hampi</option>
+                <option value="both">both</option>
+              </select>
+            </label>
+            <button id="btn-load-facts" class="btn primary">Load</button>
+          </div>
+          <div id="facts-table"></div>
+        </div>
+        <div class="card">
+          <h2>Add a fact</h2>
+          <p class="hint">POST <code>/api/facts</code> — verified requires both source fields;
+            fiction automatically drops them.</p>
+          <form id="add-fact-form" class="form">
+            <label>Statement <textarea id="fact-statement" maxlength="500" rows="3" required></textarea></label>
+            <div class="row">
+              <label>Verification
+                <select id="fact-verification">
+                  <option value="verified" selected>verified</option>
+                  <option value="fiction">fiction</option>
+                </select>
+              </label>
+              <label>Era
+                <select id="fact-new-era">
+                  <option value="historical_vijayanagara">historical_vijayanagara</option>
+                  <option value="present_hampi">present_hampi</option>
+                  <option value="both">both</option>
+                </select>
+              </label>
+            </div>
+            <div id="fact-source-fields">
+              <label>Source title <input id="fact-source-title" maxlength="200" placeholder="Group of Monuments at Hampi — UNESCO"></label>
+              <label>Source URL <input id="fact-source-url" type="url" placeholder="https://whc.unesco.org/en/list/241/"></label>
+            </div>
+            <button class="btn primary" type="submit">Save fact</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════ Request log tab ════════════════ -->
+    <section id="tab-log" class="tab">
+      <div class="card wide">
+        <div class="row spread">
+          <h2>Request log <span class="hint">every call made from this dashboard — copy responses into Unity</span></h2>
+          <button id="btn-clear-log" class="btn">Clear</button>
+        </div>
+        <div id="request-log" class="log"><p class="hint">No requests yet.</p></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Echoes of Bharat backend · API docs: <code>docs/API.md</code> · Unity guide: <code>docs/UNITY.md</code>
+  </footer>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
